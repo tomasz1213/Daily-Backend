@@ -8,16 +8,13 @@ const pool = new Pool({
   port: process.env.DATABASE_PORT,
 });
 
-const postgresQuery = (query) => {
-  return new Promise(function (resolve, reject) {
-
-    pool.query(query, async (error, results) => {
+const postgresQuery = (query: any) => {
+  return new Promise((resolve, reject) => {
+    pool.query(query, async (error: {}, results: {}) => {
       if (error) {
         reject(error);
-        await pool.end();
       }
-      resolve(`A new merchant has been added added: ${results.rows[0]}`);
-      await pool.end();
+      resolve(results);
     });
   });
 };

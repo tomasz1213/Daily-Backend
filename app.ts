@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const userRoutes = require('./routes/user-routes');
 const HttpError = require('./models/http-error');
+import { Request, Response, NextFunction } from 'express';
 
 const app = express();
 
@@ -12,7 +13,7 @@ app.use(bodyParser.json());
 
 app.use('/upload/weather', express.static(path.join('upload', 'weather')));
 
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader(
     'Access-Control-Allow-Headers',
@@ -25,9 +26,9 @@ app.use((req, res, next) => {
 
 app.use('/api/user', userRoutes);
 
-app.use((req, res, next) => next(new HttpError('Could not find route', 404)));
+app.use((req: Request, res: Response, next: NextFunction) => next(new HttpError('Could not find route', 404)));
 
-app.use((error, req, res, next) => {
+app.use((error: any, req: Request, res: any, next: NextFunction) => {
   if (res.headerSent) {
     return next(error);
   }

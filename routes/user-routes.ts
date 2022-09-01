@@ -1,15 +1,10 @@
+export {};
 const express = require('express');
 const { check } = require('express-validator');
-const {
-  getAllUsers,
-  registerUser,
-  loginUser,
-} = require('../controllers/users-controller');
+const { registerUser, loginUser } = require('../controllers/users-controller');
 const checkAuth = require('../middleware/auth-check');
 
 const router = express.Router();
-
-router.get('/', getAllUsers);
 
 router.post(
   '/register',
