@@ -5,11 +5,16 @@ const {
   writeWaterData,
   updateWaterData,
 } = require('../controllers/water-controller');
+const checkAuth = require('../middleware/auth-check');
 
 const router = express.Router();
 
 router.post(
   '/register',
-  check('login').isLength({ min: 3 }),
+  check('value').isLength({ min: 2 }),
+  check('time').isLength({ min: 5 }),
+  check('date').isLength({ min: 5 }),
   writeWaterData
 );
+
+module.exports = router;

@@ -2,8 +2,10 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
 require('dotenv').config();
+const checkAuth = require('./middleware/auth-check');
 
 const userRoutes = require('./routes/user-routes');
+const waterRoutes = require('./routes/water-routes');
 const HttpError = require('./models/http-error');
 import { Request, Response, NextFunction } from 'express';
 
@@ -25,6 +27,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 
 app.use('/api/user', userRoutes);
+app.use(checkAuth);
+app.use('/api/water', waterRoutes);
 
 app.use((req: Request, res: Response, next: NextFunction) => next(new HttpError('Could not find route', 404)));
 
