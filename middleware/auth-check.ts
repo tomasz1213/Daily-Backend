@@ -13,7 +13,7 @@ module.exports = (req: IGetUserAuthInfoRequest, res: Response, next: NextFunctio
       token,
       'secret-password-same-as-everywhere'
     );
-    req.userData = { login: decodedToken.login };
+    req.userData = { login: decodedToken.login, id: decodedToken.id };
     next();
   } catch (err) {
     const error = new HttpError('Invalid Token', 401);
