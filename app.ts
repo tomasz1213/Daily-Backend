@@ -1,14 +1,34 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const path = require('path');
+import express from 'express';
+import bodyParser from 'body-parser';
+import path from 'path';
 require('dotenv').config();
-const checkAuth = require('./middleware/auth-check');
-const index = require('./index');
+import { authCheck } from './middleware/auth-check';
+import { DataSource } from 'typeorm';
+import { WaterHistory } from './entities/WaterHistory';
+import { Client } from './entities/Client';
 
-const userRoutes = require('./routes/user-routes');
-const waterRoutes = require('./routes/water-routes');
-const HttpError = require('./models/http-error');
+import userRoutes from './routes/user-routes';
+import waterRoutes from './routes/water-routes';
+import { HttpError } from './models/http-error';
 import { Request, Response, NextFunction } from 'express';
+
+const AppDataSource = new DataSource({
+  type: 'postgres',
+  host: process.env.DATABASE_HOST,
+  port: 5432,
+  username: process.env.DATABASE_USER,
+  password: process.env.DATABASE_PASSWORD,
+  database: process.env.DATABASE_DATABASE,
+  synchronize: true,
+  logging: false,
+  entities: [Client, WaterHistory],
+});
+
+AppDataSource.initialize()
+  .then(() => {
+    console.log('connected to database');
+  })
+  .catch((error) => console.log(error));
 
 const app = express();
 
@@ -27,10 +47,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use('/api/user', userRoutes);
-app.use(checkAuth);
+app.use(authCheck);
 app.use('/api/water', waterRoutes);
 
-app.use((req: Request, res: Response, next: NextFunction) => next(new HttpError('Could not find route', 404)));
+app.use((req: Request, res: Response, next: NextFunction) =>
+  next(new HttpError('Could not find route', 404))
+);
 
 app.use((error: any, req: Request, res: any, next: NextFunction) => {
   if (res.headerSent) {

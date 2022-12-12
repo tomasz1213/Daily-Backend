@@ -1,11 +1,10 @@
-const express = require('express');
-const { check } = require('express-validator');
-const {
+import express from 'express';
+import { check } from 'express-validator';
+import {
   readWaterData,
   writeWaterData,
   updateWaterData,
-} = require('../controllers/water-controller');
-const checkAuth = require('../middleware/auth-check');
+} from '../controllers/water-controller';
 
 const router = express.Router();
 
@@ -17,4 +16,4 @@ router.post(
   writeWaterData
 );
 
-module.exports = router;
+export default router;

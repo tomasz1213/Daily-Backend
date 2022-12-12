@@ -1,14 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
-const { v4: uuidv4 } = require('uuid');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const { validationResult } = require('express-validator');
-const HttpError = require('../models/http-error');
-const postgresQuery = require('../utils/postgresQuery');
+import { v4 as uuidv4 } from 'uuid';
+import { Client } from '../entities/Client';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import { validationResult } from 'express-validator';
+import { HttpError } from '../models/http-error';
 
 const saltRounds = 10;
 
-const registerUser = async (req: Request, res: Response) => {
+export const registerUser = async (req: Request, res: Response) => {
   const id = uuidv4();
   const error = validationResult(req);
   const { login, password, email, name } = req.body;
@@ -18,35 +18,35 @@ const registerUser = async (req: Request, res: Response) => {
       login,
       id,
     },
-    process.env.TOKEN_SECRET_PASSWORD,
+    'secret-password-same-as-everywhere',
     { expiresIn: '96h' }
   );
-  const checkUserQuery = {
-    text: 'SELECT * FROM users WHERE login = $1 OR email = $2',
-    values: [login, email],
-  };
-  const registerQuery = {
-    text: 'INSERT INTO users (user_uid, token, email, name, login, password) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-    values: [id, token, email, name, login, hashPassword],
-  };
-  const { rows } = await postgresQuery(checkUserQuery);
 
-  if (!error.isEmpty()) {
-    return res.status(400).json({ errors: error.errors });
-  }
-  if (rows.find((user: { email: string }) => email === user.email)) {
-    return res.status(411).json({ errors: 'Email is already used' });
-  }
-  if (rows.find((user: { login: string }) => login === user.login)) {
-    return res.status(411).json({ errors: 'Login is already used' });
+  const databaseClient = await Client.findOne({ where: { login } });
+
+  if (databaseClient) {
+    if (databaseClient.email) {
+      return res.status(411).json({ errors: 'Email is already used' });
+    }
+    if (databaseClient.login) {
+      return res.status(411).json({ errors: 'Login is already used' });
+    }
   }
 
-  return await postgresQuery(registerQuery)
-    .then(() => res.json({ token }))
-    .catch(() => res.status(500).json({ errors: 'Server Error' }));
+  const client = Client.create({
+    user_uid: id,
+    token,
+    email,
+    name,
+    login,
+    password: hashPassword,
+  });
+
+  await client.save();
+  return res.json({ token });
 };
 
-const loginUser = async (req: Request, res: Response) => {
+export const loginUser = async (req: Request, res: Response) => {
   const error = validationResult(req);
   const { login, password } = req.body;
 
@@ -54,36 +54,41 @@ const loginUser = async (req: Request, res: Response) => {
     {
       login,
     },
-    process.env.TOKEN_SECRET_PASSWORD,
+    'secret-password-same-as-everywhere',
     { expiresIn: '1h' }
   );
-  const updateTokenQuery = {
-    text: 'UPDATE users SET token = $1 WHERE login = $2',
-    values: [generatedToken, login],
-  };
-  const checkUserQuery = {
-    text: 'SELECT * FROM users WHERE login = $1',
-    values: [login],
-  };
-  const { rows } = await postgresQuery(checkUserQuery);
-  const userData = rows?.find(
-    (user: { login: string }) => user.login === login
-  );
-  userData.token = generatedToken;
 
-  const comparePassword = await bcrypt.compare(password, userData.password);
+  const databaseClient = await Client.findOne({ where: { login: login } });
+
+  if (!databaseClient) {
+    return res.status(411).json({ errors: 'User does not exist in database' });
+  }
+
+  databaseClient.token = generatedToken;
+  const comparePassword = await bcrypt.compare(
+    password,
+    databaseClient.password
+  );
 
   if (!error.isEmpty()) {
-    return res.status(400).json({ errors: error.errors });
+    return res.status(400).json({ errors: error });
   }
   if (!comparePassword) {
     return res.status(411).json({ errors: 'Invalid Password' });
   }
 
-  return await postgresQuery(updateTokenQuery)
-    .then(() => res.json(userData))
-    .catch(() => res.status(500).json({ errors: 'Server Error' }));
+  Client.update(databaseClient.user_uid, { token: generatedToken });
+  return res.json(databaseClient);
 };
 
-exports.registerUser = registerUser;
-exports.loginUser = loginUser;
+export const deleteUser = async (req: Request, res: Response) => {
+  const error = validationResult(req);
+  const { uid } = req.body;
+
+  if (!error.isEmpty()) {
+    return res.status(400).json({ errors: error });
+  }
+
+  const user = Client.delete(uid);
+  return res.json(user);
+};

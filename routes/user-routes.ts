@@ -1,8 +1,12 @@
 export {};
-const express = require('express');
-const { check } = require('express-validator');
-const { registerUser, loginUser } = require('../controllers/users-controller');
-const checkAuth = require('../middleware/auth-check');
+import express from 'express';
+import { check } from 'express-validator';
+import {
+  registerUser,
+  loginUser,
+  deleteUser,
+} from '../controllers/users-controller';
+import { authCheck } from '../middleware/auth-check';
 
 const router = express.Router();
 
@@ -22,6 +26,8 @@ router.post(
   loginUser
 );
 
-router.post('/checkAuth', checkAuth);
+router.delete('/delete', deleteUser);
 
-module.exports = router;
+router.post('/checkAuth', authCheck);
+
+export default router;

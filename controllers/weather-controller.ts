@@ -1,8 +1,5 @@
 export {};
 import { Request, Response, NextFunction } from 'express';
-const { v4: uuidv4 } = require('uuid');
-const { validationResult } = require('express-validator');
-const postgresQuery = require('../utils/postgresQuery');
 
 const readWeatherData = async (
   req: Request,
